@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,9 @@ inputs:
     required: true
   debug-suffix:
     description: 'File name suffix denoting debug level, possibly empty'
+    required: false
+  make-target:
+    description: 'Make target'
     required: false
 
 runs:
@@ -68,10 +71,86 @@ runs:
         fi
       shell: bash
 
+    - name: 'Create libjdk.a'
+      run: |
+        cd build
+        mkdir -p allobjs
+        cd allobjs
+        find .. -name "*.a" -exec ar x {} \;
+        ar rcs ../libjdk.a *.o
+        cd ..
+        rm -rf allobjs
+      shell: bash
+      if: inputs.make-target == 'static-libs' && inputs.debug-suffix != '-debug' && !startsWith(inputs.platform, 'windows')
+
+    - name: 'List all *.lib files'
+      run: |
+        Get-ChildItem -Path .\build -Filter *.lib -Recurse
+      shell: pwsh
+      if: inputs.make-target == 'static-libs' && inputs.debug-suffix != '-debug' && startsWith(inputs.platform, 'windows')
+
+    - name: 'Create libjdk.lib for windows'
+      run: |
+        # Define the root path where to start the search
+        $searchRoot = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\MSVC"
+        
+        # Search for lib.exe using a wildcard for the version
+        $libPath = Get-ChildItem -Path $searchRoot -Recurse -Filter "lib.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*14.29*\bin\Hostx64\x64\lib.exe" }
+        
+        # Check if libPath is not empty
+        if ($libPath) {
+          # Store the full path of the first found lib.exe (if there are multiple, you can adjust as needed)
+          $libPath = $libPath[0].FullName
+          Write-Output "Found lib.exe at: $libPath"
+        
+          # Change directory to where .lib files are located
+          cd build
+        
+          # Collect all .lib files in the directory and subdirectories
+          $libFiles = Get-ChildItem -Path . -Filter *.lib -Recurse | Select-Object -ExpandProperty FullName
+        
+          # Check if any .lib files were found
+          if ($libFiles.Count -eq 0) {
+            Write-Output "No .lib files found in the specified directory."
+            exit 1
+          }
+        
+          # Prepare the command arguments
+          $arguments = "/OUT:libjdk.lib " + ($libFiles -join " ")
+        
+          # Construct the command
+          $command = "& `"$libPath`" $arguments"
+        
+          # Execute the command
+          Write-Output "Executing command: $command"
+          Invoke-Expression $command
+        
+          # Check if the output file was created
+          if (Test-Path "libjdk.lib") {
+            Write-Output "Successfully created libjdk.lib"
+          } else {
+            Write-Output "Failed to create libjdk.lib"
+            exit 1
+          }
+        } else {
+          Write-Output "lib.exe not found."
+          exit 1
+        }
+      shell: pwsh
+      if: inputs.make-target == 'static-libs' && inputs.debug-suffix != '-debug' && startsWith(inputs.platform, 'windows')
+
     - name: 'Upload bundles artifact'
       uses: actions/upload-artifact@v4
       with:
         name: bundles-${{ inputs.platform }}${{ inputs.debug-suffix }}
         path: bundles
         retention-days: 1
-      if: steps.bundles.outputs.bundles-found == 'true'
+      if: steps.bundles.outputs.bundles-found == 'true' && inputs.make-target != 'static-libs'
+
+    - name: 'Upload static image artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.platform }}
+        path: build/libjdk.*
+        retention-days: 1
+      if: inputs.make-target == 'static-libs' && inputs.debug-suffix != '-debug'

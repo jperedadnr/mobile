@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022, 2024, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2024, Gluon and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 # questions.
 #
 
-name: 'Build (macos)'
+name: 'Build (ios)'
 
 on:
   workflow_call:
@@ -40,11 +40,11 @@ on:
       make-target:
         required: false
         type: string
-        default: 'product-bundles test-bundles'
+        default: 'static-libs'
       debug-levels:
         required: false
         type: string
-        default: '[ "debug", "release" ]'
+        default: '[ "release" ]'
       xcode-toolset-version:
         required: true
         type: string
@@ -60,15 +60,6 @@ jobs:
     name: build
     runs-on: ${{ inputs.runs-on }}
 
-    strategy:
-      fail-fast: false
-      matrix:
-        debug-level: ${{ fromJSON(inputs.debug-levels) }}
-        include:
-          - debug-level: debug
-            flags: --with-debug-level=fastdebug
-            suffix: -debug
-
     steps:
       - name: 'Checkout the JDK source'
         uses: actions/checkout@v4
@@ -77,7 +68,7 @@ jobs:
         id: bootjdk
         uses: ./.github/actions/get-bootjdk
         with:
-          platform: ${{ inputs.platform }}
+          platform: macos-aarch64
 
       - name: 'Get JTReg'
         id: jtreg
@@ -94,18 +85,18 @@ jobs:
           sudo xcode-select --switch /Applications/Xcode_${{ inputs.xcode-toolset-version }}.app/Contents/Developer
           # This will make GNU make available as 'make' and not only as 'gmake'
           echo '/usr/local/opt/make/libexec/gnubin' >> $GITHUB_PATH
-
+          wget -P /tmp https://github.com/apple/cups/archive/refs/tags/v2.3.6.zip && unzip /tmp/v2.3.6.zip -d /tmp
       - name: 'Configure'
         run: >
           bash configure
-          --with-conf-name=${{ inputs.platform }}
-          ${{ matrix.flags }}
-          --with-version-opt=${GITHUB_ACTOR}-${GITHUB_SHA}
+          --with-conf-name=ios-macos-aarch64
+          --enable-headless-only
           --with-boot-jdk=${{ steps.bootjdk.outputs.path }}
-          --with-jtreg=${{ steps.jtreg.outputs.path }}
-          --with-gtest=${{ steps.gtest.outputs.path }}
-          --with-zlib=system
-          --with-jmod-compress=zip-1
+          --openjdk-target=aarch64-macos-ios
+          --with-cups-include=/tmp/cups-2.3.6
+          --with-sysroot=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk
+          --with-version-opt=${GITHUB_ACTOR}-${GITHUB_SHA}
+          ${{ matrix.flags }}
           ${{ inputs.extra-conf-options }} ${{ inputs.configure-arguments }} || (
           echo "Dumping config.log:" &&
           cat config.log &&
