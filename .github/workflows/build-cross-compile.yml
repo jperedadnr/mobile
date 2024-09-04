@@ -28,6 +28,9 @@ name: 'Build (cross-compile)'
 on:
   workflow_call:
     inputs:
+      platform:
+        required: true
+        type: string
       gcc-major-version:
         required: true
         type: string
@@ -40,6 +43,10 @@ on:
       make-arguments:
         required: false
         type: string
+      make-target:
+        required: false
+        type: string
+        default: 'static-libs'
 
 jobs:
   build-cross-compile:
