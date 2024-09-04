@@ -186,12 +186,12 @@ jobs:
       make-arguments: ${{ github.event.inputs.make-arguments }}
     if: needs.select.outputs.linux-x64 == 'true'
 
-  build-linux-aarch64:
-    name: linux-aarch64
+  build-linux-cross-compile:
+    name: linux-cross-compile
     needs: select
     uses: ./.github/workflows/build-cross-compile.yml
     with:
-      platform: linux-x64
+      platform: linux-cross-compile
       make-target: 'static-libs'
       gcc-major-version: '10'
       debug-levels: '[ "release" ]'
