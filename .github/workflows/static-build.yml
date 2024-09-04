@@ -197,7 +197,7 @@ jobs:
       debug-levels: '[ "release" ]'
       configure-arguments: ${{ github.event.inputs.configure-arguments }}
       make-arguments: ${{ github.event.inputs.make-arguments }}
-    if: needs.select.outputs.linux-aarch64 == 'true'  
+    if: needs.select.outputs.linux-cross-compile == 'true'  
 
   build-macos-x64:
     name: macos-x64
