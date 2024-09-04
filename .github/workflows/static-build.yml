@@ -31,7 +31,7 @@ on:
       platforms:
         description: 'Platform(s) to execute on (comma separated, e.g. "android-linux-aarch64, ios-macos-aarch64, linux-x64, macos, aarch64")'
         required: true
-        default: 'android-linux-aarch64, ios-macos-aarch64, linux-x64, macos-x64, macos-aarch64, windows-x64, windows-aarch64'
+        default: 'android-linux-aarch64, ios-macos-aarch64, linux-x64, linux-cross-compile, macos-x64, macos-aarch64, windows-x64, windows-aarch64'
       configure-arguments:
         description: 'Additional configure arguments'
         required: false
