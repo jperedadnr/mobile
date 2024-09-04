@@ -201,6 +201,6 @@ jobs:
       - name: 'Upload bundles'
         uses: ./.github/actions/upload-bundles
         with:
-          platform: ${{ inputs.platform }}
+          platform: linux-${{ matrix.target-cpu }}
           debug-suffix: '${{ matrix.suffix }}'
           make-target: 'static-libs'
