@@ -34,6 +34,10 @@ ifeq ($(call isTargetOs, macosx), true)
   LIBPREFS_EXCLUDE_SRC_PATTERNS := /unix/
 endif
 
+ifeq ($(call isTargetOs, ios), true)
+  LIBPREFS_EXCLUDE_SRC_PATTERNS := /macosx/
+endif
+
 $(eval $(call SetupJdkLibrary, BUILD_LIBPREFS, \
     NAME := prefs, \
     EXCLUDE_SRC_PATTERNS := $(LIBPREFS_EXCLUDE_SRC_PATTERNS), \
